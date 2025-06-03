@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>インタラクティブ・レポート：「制限」と「余白」の美学 V2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Playfair Display', serif; /* Base font for body, changed back for readability */
+            background-color: #FDFBF5; 
+            color: #423F3E; 
+            scroll-behavior: smooth;
+        }
+        .title-font {
+            font-family: 'Playfair Display', serif; /* Specific font for titles */
+        }
+        .nav-button {
+            transition: all 0.3s ease-in-out;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+        .nav-button.active {
+            background-color: #C8BBAE; 
+            color: #FDFBF5;
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            border-color: #B0A093;
+        }
+        .nav-button:hover:not(.active) {
+            background-color: #EAE3DC;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+        }
+        .content-card { 
+            transition: opacity 0.6s ease-in-out, transform 0.6s ease-in-out;
+            min-height: 350px; 
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 700px; 
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .keyword-interactive {
+            cursor: help;
+            border-bottom: 2px dotted #A0938C;
+            position: relative;
+        }
+        .tooltip {
+            visibility: hidden;
+            width: 260px; 
+            max-width: 90vw; 
+            background-color: #5C5653;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 10; 
+            bottom: 130%; 
+            left: 50%;
+            transform: translateX(-50%); 
+            opacity: 0;
+            transition: opacity 0.3s, visibility 0.3s;
+            font-size: 0.8rem; 
+            line-height: 1.5;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .keyword-interactive:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+        .section-reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+        .section-reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .css-art-container {
+            width: 60px; 
+            height: 60px; 
+            margin: 0 auto 16px auto; 
+            position: relative;
+        }
+        @media (min-width: 640px) { 
+            .css-art-container {
+                width: 80px;
+                height: 80px;
+                margin: 0 auto 20px auto;
+            }
+        }
+
+        .art-haiku { 
+            border-left: 2px solid #D3C4B3; 
+            height: 40px; width: 1px; position: absolute; top: 10px; left: 20px; 
+        }
+        .art-haiku::before, .art-haiku::after {
+            content: ''; position: absolute; background-color: #D3C4B3; height: 1px; 
+        }
+        .art-haiku::before { width: 16px; top: 8px; left: -8px; } 
+        .art-haiku::after { width: 12px; top: 24px; left: -4px; } 
+
+        .art-silent-film { 
+            width: 40px; height: 40px; border: 2px solid #C8BBAE; border-radius: 50%; position:absolute; top:10px; left:10px; 
+        }
+        .art-silent-film::before {
+            content: ''; width: 8px; height:8px; background-color: #C8BBAE; border-radius: 50%; position:absolute; top:15px; left:15px; 
+        }
+         .art-noh { 
+            width: 30px; height: 40px; border: 2px solid #B0A093; border-radius: 50% 50% 30% 30% / 60% 60% 40% 40%; position:absolute; top:10px; left:15px; 
+        }
+        .art-miku { 
+            display: flex; align-items: flex-end; height: 40px; position:absolute; top:10px; left:10px; 
+        }
+        .art-miku div { width: 4px; margin: 0 1px; background-color: #A0938C; animation: miku-wave 1.2s infinite ease-in-out; } 
+        .art-miku div:nth-child(1) { height: 16px; animation-delay: 0.1s; }
+        .art-miku div:nth-child(2) { height: 32px; animation-delay: 0.2s; }
+        .art-miku div:nth-child(3) { height: 24px; animation-delay: 0.3s; }
+        .art-miku div:nth-child(4) { height: 40px; animation-delay: 0.4s; }
+        .art-miku div:nth-child(5) { height: 20px; animation-delay: 0.5s; }
+        @keyframes miku-wave { 0%, 100% { transform: scaleY(0.5); } 50% { transform: scaleY(1); } }
+
+        .art-ado { 
+            width: 40px; height: 40px; background: radial-gradient(circle, #423F3E 20%, transparent 70%); border-radius: 50%; position:absolute; top:10px; left:10px; 
+        }
+        .art-ado::after {
+            content: '?'; font-size: 20px; color: #FDFBF5; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; 
+        }
+
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto px-4 sm:px-6 py-8 sm:py-12 md:py-20">
+
+        <header class="text-center mb-12 sm:mb-16 md:mb-20 section-reveal">
+            <h1 class="title-font text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-[#4a4a4a] mb-4 sm:mb-6">不在の雄弁性</h1>
+            <p class="text-lg sm:text-xl md:text-2xl text-[#6b6b6b] font-light">「制限」が「余白」を生み出し、想像力を解き放つ</p>
+        </header>
+
+        <main>
+            <section id="introduction" class="mb-12 sm:mb-16 md:mb-20 max-w-3xl mx-auto section-reveal">
+                <p class="text-base sm:text-lg md:text-xl leading-relaxed text-center text-gray-700">
+                    無声映画の芸術的魅力の核心の一つに、「制限」がもたらす「余白」の存在が挙げられます。音声や色彩、詳細な説明といった要素が制約されることで、かえって観客の想像力が刺激され、独自の解釈や深い感情移入が生まれる空間、<br>それが「余白」です。<br>このサイトでは、無声映画を基点としつつ、俳句、能楽、さらには現代のポップカルチャーに至る多様な表現形式を横断しながら、「制限の創造性」と「余白の美学」がどのように私たちの心を捉えるのかを探求します。各事例が持つ独自の「制限」と、そこから生まれる豊かな「余白」の世界を、<br>どうぞご体験ください。
+                </p>
+            </section>
+
+            <section id="case-studies" class="mb-12 sm:mb-16 md:mb-20 section-reveal">
+                <h2 class="title-font text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-6 text-[#4a4a4a]">表現の探求：5つの事例</h2>
+                <p class="text-center text-gray-600 mb-8 sm:mb-10 max-w-2xl mx-auto text-base sm:text-lg">下のボタンで各表現形式を選択し、「制限」が「余白」をどう生み出すかを探りましょう。</p>
+                <div id="nav-container" class="flex flex-wrap justify-center gap-2 sm:gap-3 md:gap-4 mb-8 sm:mb-10">
+                    <button data-target="haiku" class="nav-button active text-sm sm:text-base md:text-lg bg-white rounded-lg sm:rounded-xl px-3 py-2 sm:px-4 md:px-5 shadow-md hover:shadow-lg">📜 俳句</button>
+                    <button data-target="silent-film" class="nav-button text-sm sm:text-base md:text-lg bg-white rounded-lg sm:rounded-xl px-3 py-2 sm:px-4 md:px-5 shadow-md hover:shadow-lg">🎬 無声映画</button>
+                    <button data-target="noh" class="nav-button text-sm sm:text-base md:text-lg bg-white rounded-lg sm:rounded-xl px-3 py-2 sm:px-4 md:px-5 shadow-md hover:shadow-lg">🎭 能楽</button>
+                    <button data-target="miku" class="nav-button text-sm sm:text-base md:text-lg bg-white rounded-lg sm:rounded-xl px-3 py-2 sm:px-4 md:px-5 shadow-md hover:shadow-lg">🎤 初音ミク</button>
+                    <button data-target="ado" class="nav-button text-sm sm:text-base md:text-lg bg-white rounded-lg sm:rounded-xl px-3 py-2 sm:px-4 md:px-5 shadow-md hover:shadow-lg">🎶 Ado</button>
+                </div>
+
+                <div id="content-display-wrapper" class="max-w-4xl mx-auto">
+                    <div id="content-display" class="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 lg:p-10 transform opacity-0 min-h-[300px] sm:min-h-[350px]">
+                        
+                    </div>
+                </div>
+            </section>
+            
+            <section id="comparison" class="mb-12 sm:mb-16 md:mb-20 section-reveal max-w-4xl mx-auto">
+                <h2 class="title-font text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-6 text-[#4a4a4a]">「余白」の構造：比較分析</h2>
+                 <p class="text-center text-gray-600 mb-8 sm:mb-10 max-w-2xl mx-auto text-base sm:text-lg">各事例の「余白」の特性をレーダーチャートで比較します。凡例をクリックすると、特定のデータセットの表示/非表示を切り替えられます。</p>
+                <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl p-3 sm:p-4 md:p-6 lg:p-8">
+                    <div class="chart-container h-[300px] sm:h-[350px] md:h-[400px] lg:h-[450px] max-h-[300px] sm:max-h-[350px] md:max-h-[450px] lg:max-h-[500px]">
+                        <canvas id="comparisonChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <section id="theory" class="mb-12 sm:mb-16 md:mb-20 max-w-3xl mx-auto bg-white rounded-xl sm:rounded-2xl shadow-xl p-6 sm:p-8 md:p-10 section-reveal">
+                <h2 class="title-font text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-6 sm:mb-8 text-[#4a4a4a]">理論の核心：「余白」と「間」</h2>
+                <div class="space-y-4 sm:space-y-6 text-base sm:text-lg leading-relaxed text-gray-700">
+                    <p>日本の美意識の根幹には、<span class="keyword-interactive font-semibold">余白 (よはく)<span class="tooltip">平面的な芸術（絵画、書など）で意識される、意図的に描かれない空間。見る者の想像を促し、作品に深みを与える。</span></span>と<span class="keyword-interactive font-semibold">間 (ま)<span class="tooltip">時間的・空間的な流れ（音楽、演劇、建築、対人関係など）の中で意識される、要素間の「あわい」。リズム、緊張、情感を生み出す。</span></span>という概念が存在します。これらは単なる空白ではなく、意味を宿し、鑑賞者の参加を誘う意図的な「不在」です。</p>
+                    <p><strong class="font-semibold text-[#5a524e]">余白</strong>は、主に絵画や書など平面的な芸術で意識され、描かれない部分に見る者の想像を補わせます。長谷川等伯の『松林図屏風』のように、余白そのものが主題となることさえあります。</p>
+                    <p><strong class="font-semibold text-[#5a524e]">間</strong>は、音楽や演劇、対人関係など時間的な流れの中で意識されます。音と音、動きと動きの間の無音・静止が、緊張や情感、リズムを生み出します。これらは、全てを語り尽くさない「引き算の美学」であり、受け手が能動的に意味を共創する余地を残すことで、作品に深い奥行きと余韻を与えるのです。</p>
+                </div>
+            </section>
+
+            <section id="conclusion" class="text-center max-w-3xl mx-auto pb-8 sm:pb-0 section-reveal">
+                <h2 class="title-font text-2xl sm:text-3xl md:text-4xl font-bold mb-6 text-[#4a4a4a]">結論：語られざるものの永続的な魅力</h2>
+                <p class="text-base sm:text-lg md:text-xl leading-relaxed text-gray-700">
+                    情報が溢れ、あらゆるものが明示的に語られる現代において、<br>「余白」を持つ芸術は特別な価値を放ちます。<br>それらは、私たちに立ち止まり、考え、想像する時間を与えてくれます。<br>鑑賞者を受動的な消費者から能動的な意味の共創者へと変える力、<br>それこそが「制限」から生まれる「余白」の永続的な魅力の源泉なのです。
+                </p>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const contentData = {
+            haiku: {
+                title: '📜 俳句：十七音が紡ぐ宇宙',
+                artClass: 'art-haiku',
+                content: `
+                    <p class="mb-3 sm:mb-4">五・七・五という極端な文字数制限が、俳句の芸術的な奥行きを生み出します。作者は詳細な描写を「省略」し、季語や掛詞で情景を「暗示」するにとどめます。</p>
+                    <p class="mb-3 sm:mb-4">この言葉の余白に、読者は自らの経験や感情を投影し、詩の世界を能動的に「補完」します。松尾芭蕉の「古池や 蛙飛びこむ 水の音」という句では、音に至るまでの静寂や、池の周りの風景といった書かれていない部分を想像することで、初めて深い味わいが生まれます。</p>
+                    <ul class="list-disc list-inside space-y-1 sm:space-y-2 pl-2 sm:pl-4 text-sm sm:text-base text-gray-600">
+                        <li><strong>主な制約:</strong> 十七音という音節数</li>
+                        <li><strong>創造的反応:</strong> 省略、季語による暗示</li>
+                        <li><strong>鑑賞者の役割:</strong> 情景や感情の能動的な想像的構築</li>
+                    </ul>
+                    <div class="mt-4 sm:mt-6 p-3 sm:p-4 bg-amber-50 rounded-lg border border-amber-200">
+                        <h4 class="font-semibold text-amber-700 mb-1 text-sm sm:text-base">余白のポイント</h4>
+                        <p class="text-xs sm:text-sm text-amber-600">言葉の少なさが、読者の想像力を最大限に引き出し、無限の情景を心に描かせます。</p>
+                    </div>
+                `
+            },
+            'silent-film': {
+                title: '🎬 無声映画：沈黙が語る物語',
+                artClass: 'art-silent-film',
+                content: `
+                    <p class="mb-3 sm:mb-4">同期された台詞の不在は、映画製作者に高度に洗練された「視覚言語」を発展させることを強いました。物語は、誇張された演技、象徴的な映像（視覚的隠喩）、そして編集のリズムによって語られます。</p>
+                    <p class="mb-3 sm:mb-4">観客は、聴覚的な空白、すなわち「音の余白」を、音楽の助けを借りながら自らの想像力で埋めていきます。登場人物の表情や仕草から感情を読み取り、映像の繋がりから物語のギャップを推論することで、観客は探偵のように物語の解読に深く関与するのです。</p>
+                    <ul class="list-disc list-inside space-y-1 sm:space-y-2 pl-2 sm:pl-4 text-sm sm:text-base text-gray-600">
+                        <li><strong>主な制約:</strong> 同期された音声・台詞の欠如</li>
+                        <li><strong>創造的反応:</strong> 視覚的物語展開（演技、編集）、音楽による感情誘導</li>
+                        <li><strong>鑑賞者の役割:</strong> 物語的ギャップの推論、想像的な音風景の構築</li>
+                    </ul>
+                    <div class="mt-4 sm:mt-6 p-3 sm:p-4 bg-sky-50 rounded-lg border border-sky-200">
+                        <h4 class="font-semibold text-sky-700 mb-1 text-sm sm:text-base">余白のポイント</h4>
+                        <p class="text-xs sm:text-sm text-sky-600">音の不在が視覚への集中を高め、観客自身の解釈で物語を完成させる体験を生みます。</p>
+                    </div>
+                `
+            },
+            noh: {
+                title: '🎭 能楽：削ぎ落された幽玄の美',
+                artClass: 'art-noh',
+                content: `
+                    <p class="mb-3 sm:mb-4">能の舞台は、背景画と最小限の作り物だけで構成され、視覚情報が極端に制限されています。この何もない空間という「余白」が、観客にあらゆる場所や心象風景を投影させます。</p>
+                    <p class="mb-3 sm:mb-4">また、演者がつける能面は個人の表情を隠し、普遍的な感情を象徴します。面の角度をわずかに変えるだけで多様な感情が「暗示」され、その解釈は観客の想像力に委ねられます。動きや言葉を削ぎ落とした静かな「間」の中で、観客は目に見えないもの、言葉にならない「幽玄」の気配を感じ取るのです。</p>
+                    <ul class="list-disc list-inside space-y-1 sm:space-y-2 pl-2 sm:pl-4 text-sm sm:text-base text-gray-600">
+                        <li><strong>主な制約:</strong> 舞台装置と写実的演技の制限、能面による表情の抽象化</li>
+                        <li><strong>創造的反応:</strong> 暗示的な所作、象徴的な道具、「間」の活用</li>
+                        <li><strong>鑑賞者の役割:</strong> 物語背景や心象風景の補完、幽玄の解釈</li>
+                    </ul>
+                     <div class="mt-4 sm:mt-6 p-3 sm:p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                        <h4 class="font-semibold text-emerald-700 mb-1 text-sm sm:text-base">余白のポイント</h4>
+                        <p class="text-xs sm:text-sm text-emerald-600">極限まで削ぎ落された表現が、観る者の精神性を刺激し、深遠な世界観へと誘います。</p>
+                    </div>
+                `
+            },
+            miku: {
+                title: '🎤 初音ミク：不在の設定が生む無限の物語',
+                artClass: 'art-miku',
+                content: `
+                    <p class="mb-3 sm:mb-4">初音ミクは、青緑色のツインテールを持つ16歳の少女という最小限のビジュアル以外、公式の性格や背景物語が意図的に設定されていません。この「設定の不在」が、彼女を一種の「空白のキャンバス」として機能させています。</p>
+                    <p class="mb-3 sm:mb-4">この広大な「余白」に、世界中のクリエイターが自身の楽曲、物語、感情を自由に投影し、無数の二次創作を生み出し続けています。彼女のペルソナは固定されておらず、参加者の「共創」によって絶えず定義され続けます。彼女は、ユーザーが意味を書き込むためのプラットフォームなのです。</p>
+                    <ul class="list-disc list-inside space-y-1 sm:space-y-2 pl-2 sm:pl-4 text-sm sm:text-base text-gray-600">
+                        <li><strong>主な制約:</strong> 詳細なキャラクター設定の不在</li>
+                        <li><strong>創造的反応:</strong> ユーザーによる二次創作（楽曲、イラスト、物語）</li>
+                        <li><strong>鑑賞者の役割:</strong> キャラクター像の共同創造、多様な解釈の受容</li>
+                    </ul>
+                    <div class="mt-4 sm:mt-6 p-3 sm:p-4 bg-violet-50 rounded-lg border border-violet-200">
+                        <h4 class="font-semibold text-violet-700 mb-1 text-sm sm:text-base">余白のポイント</h4>
+                        <p class="text-xs sm:text-sm text-violet-600">設定の「空白」が、無限の創造性を解放し、ユーザー参加型の文化を形成します。</p>
+                    </div>
+                `
+            },
+            ado: {
+                title: '🎶 Ado：匿名性が喚起するイマジネーション',
+                artClass: 'art-ado',
+                content: `
+                    <p class="mb-3 sm:mb-4">歌手Adoは、「顔を出さない」という戦略的な匿名性を貫いています。この「視覚的情報の制限」が、リスナーの想像力を強く刺激する「余白」を生み出しています。</p>
+                    <p class="mb-3 sm:mb-4">リスナーは、彼女の変幻自在な歌声、攻撃的かつ内省的な歌詞、そして楽曲ごとに異なるクリエイターが手がけるビジュアルイメージから、Adoというアーティストの人物像や世界観を自由に構築します。素顔という中心的な情報が欠けているため、リスナーは音楽そのものと、そこから喚起されるイメージに深く集中することになります。</p>
+                    <ul class="list-disc list-inside space-y-1 sm:space-y-2 pl-2 sm:pl-4 text-sm sm:text-base text-gray-600">
+                        <li><strong>主な制約:</strong> アーティスト本人の素顔という視覚情報の不在</li>
+                        <li><strong>創造的反応:</strong> 力強い歌声、多様な楽曲、MVごとの異なるビジュアル</li>
+                        <li><strong>鑑賞者の役割:</strong> アーティスト像の想像、楽曲世界の個人的な解釈</li>
+                    </ul>
+                    <div class="mt-4 sm:mt-6 p-3 sm:p-4 bg-rose-50 rounded-lg border border-rose-200">
+                        <h4 class="font-semibold text-rose-700 mb-1 text-sm sm:text-base">余白のポイント</h4>
+                        <p class="text-xs sm:text-sm text-rose-600">顔の不在が神秘性を高め、歌声と歌詞の世界観にリスナーを没入させます。</p>
+                    </div>
+                `
+            }
+        };
+
+        const display = document.getElementById('content-display');
+        const navButtons = document.querySelectorAll('.nav-button');
+        let comparisonChartInstance = null;
+
+        function updateContent(targetKey) {
+            const data = contentData[targetKey];
+            if (!data) return;
+
+            display.style.opacity = 0;
+            display.style.transform = 'translateY(10px)';
+
+            setTimeout(() => {
+                let artHTML = '';
+                if (data.artClass === 'art-miku') {
+                     artHTML = `
+                        <div class="css-art-container">
+                            <div class="art-miku">
+                                <div></div><div></div><div></div><div></div><div></div>
+                            </div>
+                        </div>`;
+                } else if (data.artClass) {
+                     artHTML = `<div class="css-art-container"><div class="${data.artClass}"></div></div>`;
+                }
+
+                display.innerHTML = `
+                    ${artHTML}
+                    <h3 class="title-font text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-6 text-center text-[#4a4a4a]">${data.title}</h3>
+                    <div class="text-base sm:text-lg leading-relaxed text-gray-700">${data.content}</div>
+                `;
+                display.style.opacity = 1;
+                display.style.transform = 'translateY(0)';
+            }, 300);
+
+            navButtons.forEach(button => {
+                button.classList.remove('active');
+                if (button.dataset.target === targetKey) {
+                    button.classList.add('active');
+                }
+            });
+        }
+
+        document.getElementById('nav-container').addEventListener('click', (e) => {
+            if (e.target.closest('.nav-button')) {
+                const targetKey = e.target.closest('.nav-button').dataset.target;
+                updateContent(targetKey);
+            }
+        });
+        
+        const sectionReveals = document.querySelectorAll('.section-reveal');
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    revealObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.05 }); 
+
+        sectionReveals.forEach(section => {
+            revealObserver.observe(section);
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            updateContent('haiku'); 
+            display.style.opacity = 1; 
+            display.style.transform = 'translateY(0)';
+
+
+            const ctx = document.getElementById('comparisonChart').getContext('2d');
+            const chartData = {
+                labels: [
+                    '形式の制約度', 
+                    '情報の欠如度', 
+                    '暗示への依存度', 
+                    '鑑賞者の共創度', 
+                    '感覚的な余白' 
+                ],
+                datasets: [
+                    {
+                        label: '俳句', data: [5, 4, 5, 4, 2], fill: true,
+                        backgroundColor: 'rgba(211, 196, 179, 0.3)', borderColor: 'rgb(211, 196, 179)',
+                        pointBackgroundColor: 'rgb(211, 196, 179)', pointBorderColor: '#fff', pointHoverBackgroundColor: '#fff', pointHoverBorderColor: 'rgb(211, 196, 179)', borderWidth: 2, tension: 0.1
+                    },
+                    {
+                        label: '無声映画', data: [3, 5, 4, 4, 5], fill: true,
+                        backgroundColor: 'rgba(179, 196, 211, 0.3)', borderColor: 'rgb(179, 196, 211)',
+                        pointBackgroundColor: 'rgb(179, 196, 211)', pointBorderColor: '#fff', pointHoverBackgroundColor: '#fff', pointHoverBorderColor: 'rgb(179, 196, 211)', borderWidth: 2, tension: 0.1
+                    },
+                    {
+                        label: '能楽', data: [4, 4, 5, 4, 4], fill: true,
+                        backgroundColor: 'rgba(179, 211, 196, 0.3)', borderColor: 'rgb(179, 211, 196)',
+                        pointBackgroundColor: 'rgb(179, 211, 196)', pointBorderColor: '#fff', pointHoverBackgroundColor: '#fff', pointHoverBorderColor: 'rgb(179, 211, 196)', borderWidth: 2, tension: 0.1
+                    },
+                    {
+                        label: '初音ミク', data: [1, 3, 2, 5, 1], fill: true,
+                        backgroundColor: 'rgba(211, 179, 211, 0.3)', borderColor: 'rgb(211, 179, 211)',
+                        pointBackgroundColor: 'rgb(211, 179, 211)', pointBorderColor: '#fff', pointHoverBackgroundColor: '#fff', pointHoverBorderColor: 'rgb(211, 179, 211)', borderWidth: 2, tension: 0.1
+                    },
+                    {
+                        label: 'Ado', data: [2, 3, 3, 4, 5], fill: true,
+                        backgroundColor: 'rgba(211, 211, 179, 0.3)', borderColor: 'rgb(211, 211, 179)',
+                        pointBackgroundColor: 'rgb(211, 211, 179)', pointBorderColor: '#fff', pointHoverBackgroundColor: '#fff', pointHoverBorderColor: 'rgb(211, 211, 179)', borderWidth: 2, tension: 0.1
+                    },
+                ]
+            };
+
+            comparisonChartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: chartData,
+                options: {
+                    maintainAspectRatio: false,
+                    responsive: true,
+                    scales: {
+                        r: {
+                            angleLines: { color: '#D3CFCB' },
+                            grid: { color: '#EAE6E1' },
+                            pointLabels: { 
+                                font: function(context) {
+                                    const chartWidth = context.chart.width;
+                                    let size = 11;
+                                    if (chartWidth < 400) size = 8;
+                                    else if (chartWidth < 600) size = 10;
+                                    return { size: size, weight: '500' };
+                                },
+                                color: '#6A635E' 
+                            },
+                            ticks: {
+                                backdropColor: '#FDFBF5', color: '#8C837C', stepSize: 1,
+                                font: { size: 9 }
+                            },
+                            suggestedMin: 0, suggestedMax: 5
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: function(context) {
+                                    const chartWidth = context.chart.width;
+                                    let size = 12;
+                                    if (chartWidth < 400) size = 9;
+                                    else if (chartWidth < 600) size = 10;
+                                    return { size: size, weight: '400' };
+                                },
+                                color: '#5C5653',
+                                usePointStyle: true,
+                                padding: 15 
+                            },
+                            onClick: (e, legendItem, legend) => {
+                                const index = legendItem.datasetIndex;
+                                const ci = legend.chart;
+                                if (ci.isDatasetVisible(index)) {
+                                    ci.hide(index);
+                                    legendItem.hidden = true;
+                                } else {
+                                    ci.show(index);
+                                    legendItem.hidden = false;
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#423F3E',
+                            titleFont: { size: 12, weight: 'bold' }, 
+                            bodyFont: { size: 11 }, 
+                            padding: 8, 
+                            cornerRadius: 6,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) { label += ': '; }
+                                    if (context.parsed.r !== null) { label += context.parsed.r; }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    elements: {
+                        line: {
+                            borderWidth: 2 
+                        },
+                        point: {
+                            radius: 3, 
+                            hoverRadius: 5, 
+                            borderWidth: 1,
+                            hoverBorderWidth: 1
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
